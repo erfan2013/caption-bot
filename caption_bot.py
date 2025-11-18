@@ -1,17 +1,19 @@
 import os
+import threading
 import telebot
+from flask import Flask
 
 # توکن را از متغیر محیطی می‌خوانیم
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set")
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
-# برای هر چت، کپشن جدا نگه می‌داریم
+# برای هر چت کپشن جدا
 caption_by_chat = {}
 
+# ----- هندلرهای ربات -----
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -19,9 +21,9 @@ def send_welcome(message):
         message,
         "سلام! 👋\n"
         "من یه ربات ساده‌ام که زیر متن‌هات یه کپشن ثابت می‌ذارم.\n\n"
-        "برای تنظیم کپشن از این دستور استفاده کن:\n"
+        "برای تنظیم کپشن:\n"
         "/setcaption متن کپشن\n\n"
-        "بعد از تنظیم کپشن، هر متنی بفرستی، همون متن + کپشن رو برات برمی‌گردونم. 😊"
+        "بعد از تنظیم، هر متنی بفرستی، همون متن + کپشن رو می‌فرستم. 😊"
     )
 
 
@@ -33,7 +35,7 @@ def set_caption(message):
     if len(parts) < 2 or not parts[1].strip():
         bot.reply_to(
             message,
-            "❗ لطفاً بعد از دستور /setcaption متن کپشن را بنویسید.\n"
+            "❗ لطفاً بعد از /setcaption متن کپشن را بنویسید.\n"
             "مثال:\n"
             "/setcaption این کپشن من است 🌟"
         )
@@ -58,7 +60,27 @@ def echo_with_caption(message):
     final_text = f"{user_text}\n\n{caption}"
     bot.reply_to(message, final_text)
 
+# ----- وب‌سرور ساده برای رندر -----
+
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "Caption bot is running ✅", 200
+
+
+def run_bot():
+    # ربات تلگرام در یک ترد جداگانه
+    bot.infinity_polling()
+
 
 if __name__ == "__main__":
-    print("Bot is running on Render...")
-    bot.infinity_polling()
+    print("Starting bot & web server on Render...")
+
+    # اجرای ربات در بک‌گراند
+    t = threading.Thread(target=run_bot, daemon=True)
+    t.start()
+
+    # پورت مورد انتظار Render
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
