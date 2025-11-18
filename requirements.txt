@@ -1,3 +1,6 @@
 pyTelegramBotAPI==4.23.0
+<<<<<<< HEAD
 Flask==3.0.3
 
+=======
+>>>>>>> 8d3bad0a72a7ae956fb235c2ffa7418da11d1721
