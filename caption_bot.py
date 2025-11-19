@@ -85,12 +85,15 @@ def webhook():
 
 @app.before_first_request
 def setup_webhook():
-    # قبل از اولین درخواست، وبهوک ست می‌شود
+    # هنگام بالا آمدن برنامه، وبهوک را ست می‌کنیم
     bot.delete_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     print("Webhook set to:", WEBHOOK_URL)
 
 
 if __name__ == "__main__":
+    # یک بار موقع استارت، وبهوک ست می‌شود
+    setup_webhook()
+
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
