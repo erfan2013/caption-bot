@@ -2,7 +2,8 @@ import os
 from flask import Flask, request
 import telebot
 
-# توکن ربات از متغیر محیطی
+# ----------------- تنظیمات پایه -----------------
+
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # مثلا: https://your-service.onrender.com/webhook
 
@@ -17,7 +18,8 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 # برای هر چت کپشن جدا
 caption_by_chat = {}
 
-# ---------- هندلرها ----------
+# ----------------- هندلرهای ربات -----------------
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -65,9 +67,10 @@ def echo_with_caption(message):
     bot.reply_to(message, final_text)
 
 
-# ---------- Flask App (Webhook) ----------
+# ----------------- Flask Webhook App -----------------
 
 app = Flask(__name__)
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -83,7 +86,6 @@ def webhook():
     return "OK", 200
 
 
-@app.before_first_request
 def setup_webhook():
     # هنگام بالا آمدن برنامه، وبهوک را ست می‌کنیم
     bot.delete_webhook()
