@@ -1,19 +1,23 @@
 import os
-import threading
+from flask import Flask, request
 import telebot
-from flask import Flask
 
-# توکن را از متغیر محیطی می‌خوانیم
+# توکن ربات از متغیر محیطی
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # مثلا: https://your-service.onrender.com/webhook
+
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set")
+
+if not WEBHOOK_URL:
+    raise ValueError("WEBHOOK_URL environment variable is not set")
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
 # برای هر چت کپشن جدا
 caption_by_chat = {}
 
-# ----- هندلرهای ربات -----
+# ---------- هندلرها ----------
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -60,27 +64,33 @@ def echo_with_caption(message):
     final_text = f"{user_text}\n\n{caption}"
     bot.reply_to(message, final_text)
 
-# ----- وب‌سرور ساده برای رندر -----
+
+# ---------- Flask App (Webhook) ----------
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def index():
-    return "Caption bot is running ✅", 200
+    return "Caption bot (webhook mode) is running ✅", 200
 
 
-def run_bot():
-    # ربات تلگرام در یک ترد جداگانه
-    bot.infinity_polling()
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    # بدنه‌ی JSON که تلگرام می‌فرسته
+    json_str = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK", 200
+
+
+@app.before_first_request
+def setup_webhook():
+    # قبل از اولین درخواست، وبهوک ست می‌شود
+    bot.delete_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    print("Webhook set to:", WEBHOOK_URL)
 
 
 if __name__ == "__main__":
-    print("Starting bot & web server on Render...")
-
-    # اجرای ربات در بک‌گراند
-    t = threading.Thread(target=run_bot, daemon=True)
-    t.start()
-
-    # پورت مورد انتظار Render
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
