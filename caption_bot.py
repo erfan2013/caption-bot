@@ -15,7 +15,7 @@ if not WEBHOOK_URL:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
-# برای هر چت کپشن جدا
+# ذخیره کپشن برای هر کاربر
 caption_by_chat = {}
 
 # ----------------- هندلرهای ربات -----------------
@@ -27,9 +27,11 @@ def send_welcome(message):
         message,
         "سلام! 👋\n"
         "من یه ربات ساده‌ام که زیر متن‌هات یه کپشن ثابت می‌ذارم.\n\n"
-        "برای تنظیم کپشن:\n"
+        "برای تنظیم یا تغییر کپشن از این دستور استفاده کنید:\n"
         "/setcaption متن کپشن\n\n"
-        "بعد از تنظیم، هر متنی بفرستی، همون متن + کپشن رو می‌فرستم. 😊"
+        "برای دیدن کپشن فعلی:\n"
+        "/mycaption\n\n"
+        "هر متنی ارسال کنید، نسخه کپشن‌دارش رو براتون می‌فرستم. 😊"
     )
 
 
@@ -56,6 +58,13 @@ def set_caption(message):
     )
 
 
+@bot.message_handler(commands=['mycaption'])
+def show_caption(message):
+    chat_id = message.chat.id
+    caption = caption_by_chat.get(chat_id, "🚀 هنوز هیچ کپشنی برای شما تنظیم نشده است.")
+    bot.reply_to(message, f"کپشن فعلی شما:\n\n{caption}")
+
+
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
 def echo_with_caption(message):
     chat_id = message.chat.id
@@ -65,7 +74,6 @@ def echo_with_caption(message):
 
     final_text = f"{user_text}\n\n{caption}"
     bot.reply_to(message, final_text)
-
 
 # ----------------- Flask Webhook App -----------------
 
@@ -79,7 +87,6 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # بدنه‌ی JSON که تلگرام می‌فرسته
     json_str = request.get_data().decode("utf-8")
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
@@ -87,14 +94,12 @@ def webhook():
 
 
 def setup_webhook():
-    # هنگام بالا آمدن برنامه، وبهوک را ست می‌کنیم
     bot.delete_webhook()
     bot.set_webhook(url=WEBHOOK_URL)
     print("Webhook set to:", WEBHOOK_URL)
 
 
 if __name__ == "__main__":
-    # یک بار موقع استارت، وبهوک ست می‌شود
     setup_webhook()
 
     port = int(os.environ.get("PORT", 8000))
